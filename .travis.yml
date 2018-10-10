@@ -1,0 +1,27 @@
+language: node_js
+
+node_js:
+  - 8
+  - 10
+  - 11
+
+os:
+  - linux
+  - osx
+
+dist: trusty
+
+addons:
+  chrome: stable
+  firefox: latest
+
+sudo: required
+
+before_script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export DISPLAY=:99.0; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh -e /etc/init.d/xvfb start; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo chown root /opt/google/chrome/chrome-sandbox; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo chmod 4755 /opt/google/chrome/chrome-sandbox; fi
+
+script:
+  - npm test -- --log-level=info

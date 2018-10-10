@@ -1,0 +1,14 @@
+{
+  "files": [
+    "test/example"
+  ],
+  "exclude": [],
+  "browser": {
+    "browsers": [
+      "Firefox",
+      "ChromeHeadless",
+      "Chrome"
+    ],
+    "logLevel": "default"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "metatests-browser-runner",
+  "version": "0.1.0",
+  "author": "",
+  "description": "Browser test runner for metatests",
+  "license": "MIT",
+  "bin": {
+    "metatests-browser": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "npm run lint && ./bin/cli.js -c test/config-example.json",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metarhia/metatests-browser-runner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/metarhia/metatests-browser-runner/issues"
+  },
+  "homepage": "https://github.com/metarhia/metatests-browser-runner",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "commander": "^2.19.0",
+    "eslint-config-metarhia": "^7.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "karma": "^4.0.1",
+    "karma-webpack": "^3.0.5",
+    "@metarhia/common": "^1.2.1",
+    "metatests": "^0.5.0",
+    "webpack": "^4.29.6",
+    "yaml": "^1.4.0"
+  },
+  "optionalDependencies": {
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-firefox-launcher": "^1.1.0",
+    "karma-ie-launcher": "^1.0.0",
+    "karma-opera-launcher": "^1.0.0",
+    "karma-safari-launcher": "^1.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.15.1"
+  }
+}

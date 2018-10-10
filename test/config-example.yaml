@@ -1,0 +1,8 @@
+files:
+  - test/example
+browser:
+  browsers:
+    - Firefox
+    - ChromeHeadless
+    - Chrome
+  logLevel: disable

@@ -22,12 +22,9 @@
   "dependencies": {
     "babel-polyfill": "^6.26.0",
     "commander": "^2.19.0",
-    "eslint-config-metarhia": "^7.0.0",
-    "eslint-plugin-import": "^2.16.0",
     "karma": "^4.0.1",
     "karma-webpack": "^3.0.5",
     "@metarhia/common": "^1.2.1",
-    "metatests": "^0.5.0",
     "webpack": "^4.29.6",
     "yaml": "^1.4.0"
   },
@@ -39,6 +36,12 @@
     "karma-safari-launcher": "^1.0.0"
   },
   "devDependencies": {
-    "eslint": "^5.15.1"
+    "eslint": "^5.15.1",
+    "eslint-config-metarhia": "^7.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "metatests": "^0.5.0"
+  },
+  "peerDependencies": {
+    "metatests": "^0.5.0"
   }
 }

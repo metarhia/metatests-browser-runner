@@ -1,12 +1,15 @@
 {
   "name": "metatests-browser-runner",
   "version": "0.1.0",
-  "author": "",
+  "author": "Metarhia",
   "description": "Browser test runner for metatests",
   "license": "MIT",
   "bin": {
-    "metatests-browser": "./bin/cli.js"
+    "metatests-browser": "bin/cli.js"
   },
+  "files": [
+    "bin/cli.js"
+  ],
   "scripts": {
     "test": "npm run lint && ./bin/cli.js -c test/config-example.json",
     "lint": "eslint ."

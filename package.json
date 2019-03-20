@@ -1,7 +1,7 @@
 {
   "name": "metatests-browser-runner",
   "version": "0.1.0",
-  "author": "Metarhia",
+  "author": "Vitaliy Semenchenko <semenchenkovitaliy@gmail.com>",
   "description": "Browser test runner for metatests",
   "license": "MIT",
   "bin": {

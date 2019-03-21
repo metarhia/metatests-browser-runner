@@ -16,6 +16,7 @@ const cliOptions = [
   ['--reporter <value>', 'Reporter name'],
   ['--log-level <value>', 'Log level'],
   ['--run-todo', 'Run todo tests'],
+  ['--save-adapter <value>', 'Save adapter processed by webpack to a file'],
   [
     '--unresolved-module <value>',
     'Unresolved modules handling strategy (\'ignore\', \'fail\')',
@@ -174,6 +175,10 @@ const getReporter = logLevel => {
   return reporter;
 };
 
+const getPreprocesor = adapterFile => () => (content, file, done) =>
+  fs.writeFile(adapterFile, content, err =>
+    done(err, content && content.toString()));
+
 const getBrowserConfig = conf => {
   const config = {
     preprocessors: {},
@@ -194,6 +199,12 @@ const getBrowserConfig = conf => {
   const adapter = path.resolve('./build/adapter.js');
   config.files.push(adapter);
   config.preprocessors[adapter] = ['webpack'];
+  if (conf.saveAdapter) {
+    config.plugins.push({
+      'preprocessor:meta': ['factory', getPreprocesor(conf.saveAdapter)],
+    });
+    config.preprocessors[adapter].push('meta');
+  }
 
   if (conf.unresolvedModule === 'ignore') removeNodePackages(config);
   setKarmaBrowsers(config, ...conf.browser.browsers);
@@ -216,6 +227,7 @@ const getConfig = () => {
   config.files = exclude(config.files, config.exclude);
   config.reporter = program.logLevel || 'default';
   config.logLevel = program.logLevel || config.browser.logLevel || 'default';
+  config.saveAdapter = program.saveAdapter;
   config.runTodo = program.runTodo || config.runTodo;
   config.unresolvedModule = program.unresolvedModule ||
     config.unresolvedModule ||
@@ -249,7 +261,12 @@ const runBrowser = (config, cb) => {
   }
   config.files.forEach(file => headers.push(`require('../${file}')`));
 
-  fs.writeFileSync(buildAdapter, headers.join(';') + ';');
+  const adapter = headers.join(';\n') + ';';
+  fs.writeFileSync(buildAdapter, adapter);
+  if (isLogAtLeast(config.logLevel, 'info')) {
+    console.log(`Adapter file:\n${adapter}`);
+  }
+
   const server = new karma.Server(config.browser, code => {
     fs.unlinkSync(buildAdapter);
     fs.rmdirSync(buildDir);

@@ -10,12 +10,15 @@ const fs = require('fs');
 
 const splitOpts = v => v.split(',');
 
+const DEFAULT_EXIT_TIMEOUT = 5;
+
 const cliOptions = [
   ['--exclude <patterns>', 'Exclude tests patterns', splitOpts, []],
   ['--browsers <values>', 'Browsers to run', splitOpts, []],
   ['--reporter <value>', 'Reporter name'],
   ['--log-level <value>', 'Log level'],
   ['--run-todo', 'Run todo tests'],
+  ['--exit-timeout <value>', 'Seconds to wait after tests finished'],
   ['--save-adapter <value>', 'Save adapter processed by webpack to a file'],
   [
     '--unresolved-module <value>',
@@ -140,16 +143,10 @@ const removeNodePackages = config => {
   });
 };
 
-const getReporter = logLevel => {
+const getReporter = () => {
   const browsers = [];
   const reporter = function(base) {
     base(this);
-    if (logLevel === 'quiet') {
-      this.onBrowserError = () => {};
-      this.onBrowserLog = () => {};
-      return;
-    }
-
     this.onBrowserLog = (browser, log) => {
       if (typeof log !== 'string') log = JSON.stringify(log, null, 2);
       else log = log.slice(1, log.length - 1);
@@ -175,19 +172,31 @@ const getReporter = logLevel => {
   return reporter;
 };
 
-const getPreprocesor = adapterFile => () => (content, file, done) =>
-  fs.writeFile(adapterFile, content, err =>
-    done(err, content && content.toString()));
+const getPreprocesor = adapterFile => function() {
+  return (content, file, done) =>
+    fs.writeFile(adapterFile, content, err =>
+      done(err, content));
+};
 
 const getBrowserConfig = conf => {
+  const buildDir = path.resolve('./build');
+  const buildAdapter = path.join(buildDir, 'adapter.js');
+  const buildLoader = path.join(buildDir, 'loader.js');
+
   const config = {
     preprocessors: {},
     files: [],
     plugins: [
       'karma-webpack',
-      { 'reporter:meta': ['type', getReporter(conf.logLevel)] },
+      { 'reporter:meta': ['type', getReporter()] },
     ],
-    webpack: { optimization: { minimize: false } },
+    webpack: {
+      optimization: { minimize: false },
+      module: { rules: [{
+        test: /tap-mocha-reporter\/index.js/,
+        loader: buildLoader,
+      }] },
+    },
     reporters: ['meta'],
     basePath: process.env.PWD,
     port: conf.browser.port,
@@ -196,14 +205,13 @@ const getBrowserConfig = conf => {
     concurrency: 1,
   };
 
-  const adapter = path.resolve('./build/adapter.js');
-  config.files.push(adapter);
-  config.preprocessors[adapter] = ['webpack'];
+  config.files.push(buildAdapter);
+  config.preprocessors[buildAdapter] = ['webpack'];
   if (conf.saveAdapter) {
     config.plugins.push({
       'preprocessor:meta': ['factory', getPreprocesor(conf.saveAdapter)],
     });
-    config.preprocessors[adapter].push('meta');
+    config.preprocessors[buildAdapter].push('meta');
   }
 
   if (conf.unresolvedModule === 'ignore') removeNodePackages(config);
@@ -225,10 +233,12 @@ const getConfig = () => {
   config.files = loadFiles(config.files);
   config.exclude = merge(config.exclude, program.exclude);
   config.files = exclude(config.files, config.exclude);
-  config.reporter = program.logLevel || 'default';
   config.logLevel = program.logLevel || config.browser.logLevel || 'default';
-  config.saveAdapter = program.saveAdapter;
+  config.reporter = program.reporter || 'default';
   config.runTodo = program.runTodo || config.runTodo;
+  config.exitTimeout = program.exitTimeout || DEFAULT_EXIT_TIMEOUT;
+
+  config.saveAdapter = program.saveAdapter;
   config.unresolvedModule = program.unresolvedModule ||
     config.unresolvedModule ||
     'ignore';
@@ -243,32 +253,86 @@ const getConfig = () => {
   return config;
 };
 
+const getBuildFiles = config => {
+  let adapter = `
+__karma__.start=()=>{};
+require('babel-polyfill');
+process.versions.node = '';
+process.stdout = {};
+process.stdout.write = (() => {
+  let stdout = '';
+  return str => {
+    stdout += str;
+    let i = stdout.indexOf('\\n');
+    while(i !== -1) {
+      console.log(stdout.slice(0, i));
+      stdout = stdout.slice(i + 1);
+      i = stdout.indexOf('\\n');
+    }
+  };
+})();
+const metatests = require('metatests');
+metatests.runner.instance.on('finish', () => {
+  console.log(
+    'Tests finished. Waiting for unfinished tests after end...'
+  );
+  setTimeout(() => {
+    __karma__.info({ total: 1 });
+    __karma__.result({ success: !metatests.runner.instance.hasFailures });
+    __karma__.complete();
+  }, ${config.exitTimeout * 1000});
+});\n`;
+
+  if (config.logLevel === 'quiet') {
+    adapter += 'metatests.runner.instance.removeReporter();\n';
+  } else if (config.reporter.startsWith('tap')) {
+    let reporterType = config.reporter.split('-')[1];
+    if (reporterType) reporterType = `'${reporterType}'`;
+    adapter +=
+`metatests.runner.instance.setReporter(
+  new metatests.reporters.TapReporter({ type: ${reporterType} })
+);\n`;
+  } else if (config.reporter === 'concise') {
+    adapter +=
+`metatests.runner.instance.setReporter(
+  new metatests.reporters.ConciseReporter()
+);\n`;
+  }
+
+  if (config.runTodo) {
+    adapter += `require('metatests').runner.instance.runTodo();\n`;
+  }
+
+  adapter += config.files.map(file => `require('../${file}');`).join('\n');
+
+  const loader = `module.exports = source =>
+  source.slice(20, source.indexOf('function avail'));`;
+  return { adapter, loader };
+};
+
 const runBrowser = (config, cb) => {
   if (!config.browser.browsers.length) {
     console.error('No browser environments specified');
     cb(1);
   }
 
+  const { adapter, loader } = getBuildFiles(config);
+
   const buildDir = path.resolve('./build');
-  const buildAdapter = path.resolve('./build/adapter.js');
+  const buildAdapter = path.join(buildDir, 'adapter.js');
+  const buildLoader = path.join(buildDir, 'loader.js');
+
   if (!fs.existsSync(buildDir)) fs.mkdirSync(buildDir);
-
-  const headers = [];
-  headers.push('__karma__.start=()=>{}');
-  headers.push(`require('babel-polyfill')`);
-  if (config.runTodo) {
-    headers.push(`require('metatests').runner.instance.runTodo()`);
-  }
-  config.files.forEach(file => headers.push(`require('../${file}')`));
-
-  const adapter = headers.join(';\n') + ';';
   fs.writeFileSync(buildAdapter, adapter);
+  fs.writeFileSync(buildLoader, loader);
+
   if (isLogAtLeast(config.logLevel, 'info')) {
     console.log(`Adapter file:\n${adapter}`);
   }
 
   const server = new karma.Server(config.browser, code => {
     fs.unlinkSync(buildAdapter);
+    fs.unlinkSync(buildLoader);
     fs.rmdirSync(buildDir);
     cb(code);
   });

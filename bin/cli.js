@@ -179,7 +179,7 @@ const getPreprocesor = adapterFile => function() {
 };
 
 const getBrowserConfig = conf => {
-  const buildDir = path.resolve('./build');
+  const buildDir = path.resolve('build');
   const buildAdapter = path.join(buildDir, 'adapter.js');
   const buildLoader = path.join(buildDir, 'loader.js');
 
@@ -221,7 +221,8 @@ const getBrowserConfig = conf => {
 };
 
 const getConfig = () => {
-  const version = parseFile(path.resolve(__dirname, '../package.json')).version;
+  const packageFile = path.join(path.dirname(__dirname), 'package.json');
+  const version = parseFile(packageFile).version;
   program.version(version).usage('[options] -- <file ...>');
   cliOptions.forEach(option => program.option(...option));
   program.parse(process.argv);
@@ -318,7 +319,7 @@ const runBrowser = (config, cb) => {
 
   const { adapter, loader } = getBuildFiles(config);
 
-  const buildDir = path.resolve('./build');
+  const buildDir = path.resolve('build');
   const buildAdapter = path.join(buildDir, 'adapter.js');
   const buildLoader = path.join(buildDir, 'loader.js');
 

@@ -25,11 +25,11 @@
   "dependencies": {
     "@metarhia/common": "^1.4.2",
     "babel-polyfill": "^6.26.0",
-    "commander": "^2.19.0",
     "karma": "^4.0.1",
     "karma-webpack": "^3.0.5",
     "webpack": "^4.29.6",
-    "yaml": "^1.4.0"
+    "yaml": "^1.4.0",
+    "yargs": "^13.2.2"
   },
   "optionalDependencies": {
     "karma-chrome-launcher": "^2.2.0",

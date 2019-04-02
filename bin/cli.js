@@ -1,33 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 
-const program = require('commander');
+const yargs = require('yargs');
 const common = require('@metarhia/common');
 const karma = require('karma');
 const yaml = require('yaml').default;
 const path = require('path');
 const fs = require('fs');
 
-const splitOpts = v => v.split(',');
-
 const DEFAULT_EXIT_TIMEOUT = 5;
-
-const cliOptions = [
-  ['--exclude <patterns>', 'Exclude tests patterns', splitOpts, []],
-  ['--browsers <values>', 'Browsers to run', splitOpts, []],
-  ['--reporter <value>', 'Reporter name'],
-  ['--log-level <value>', 'Log level'],
-  ['--run-todo', 'Run todo tests'],
-  ['--exit-timeout <value>', 'Seconds to wait after tests finished'],
-  ['--save-adapter <value>', 'Save adapter processed by webpack to a file'],
-  [
-    '--unresolved-module <value>',
-    'Unresolved modules handling strategy (\'ignore\', \'fail\')',
-  ],
-  ['-p, --browser-port <n>', 'Browser port'],
-  ['-c, --config <value>', 'Config file'],
-  ['--karma-config <value>', 'Karma config file'],
-];
 
 const browserLaunchers = {
   Chrome: 'karma-chrome-launcher',
@@ -46,6 +27,64 @@ const logLevels = {
   info: [3, 'LOG_INFO', 'normal'],
   debug: [4, 'LOG_DEBUG', 'verbose'],
 };
+
+const args = yargs
+  .usage('$0 [options] file.js [file.js...]')
+  .parserConfiguration({
+    'duplicate-arguments-array': false,
+  })
+  .option('exclude', {
+    array: true,
+    type: 'string',
+    describe: 'Exclude tests patterns',
+  })
+  .option('reporter', {
+    type: 'string',
+    describe: 'Reporter name',
+  })
+  .option('log-level', {
+    choices: Object.keys(logLevels),
+    type: 'string',
+    describe: 'Log level',
+  })
+  .option('run-todo', {
+    type: 'boolean',
+    describe: 'Run todo tests',
+  })
+  .option('exit-timeout', {
+    type: 'number',
+    describe: 'Seconds to wait after tests finished',
+  })
+  .option('config', {
+    alias: 'c',
+    type: 'string',
+    describe: 'Path to config file',
+  })
+  .option('browsers', {
+    array: true,
+    choices: Object.keys(browserLaunchers),
+    type: 'string',
+    describe: 'Browsers to run',
+  })
+  .option('browser-port', {
+    alias: 'p',
+    type: 'number',
+    describe: 'Browser port',
+  })
+  .option('karma-config', {
+    type: 'string',
+    describe: 'Karma config file',
+  })
+  .option('save-adapter', {
+    type: 'string',
+    describe: 'Save adapter processed by webpack to a file',
+  })
+  .option('unresolved-module', {
+    choices: ['ignore', 'fail'],
+    type: 'string',
+    describe: 'Unresolved modules handling strategy',
+  })
+  .argv;
 
 const ignoredNodePackages = [
   'child_process', 'cluster', 'dgram',
@@ -221,34 +260,28 @@ const getBrowserConfig = conf => {
 };
 
 const getConfig = () => {
-  const packageFile = path.join(path.dirname(__dirname), 'package.json');
-  const version = parseFile(packageFile).version;
-  program.version(version).usage('[options] -- <file ...>');
-  cliOptions.forEach(option => program.option(...option));
-  program.parse(process.argv);
+  const config = args.config ? parseFile(args.config) : {};
 
-  const config = program.config ? parseFile(program.config) : {};
+  config.exclude = merge(config.exclude, args.exclude);
+  config.files = loadFiles(merge(config.files, args._));
+  config.files = exclude(config.files, config.exclude);
+
+  config.logLevel = args.logLevel || config.logLevel || 'default';
+  config.reporter = args.reporter || config.reporter || 'default';
+  config.runTodo = args.runTodo || config.runTodo;
+  config.exitTimeout =
+    args.exitTimeout || config.exitTimeout || DEFAULT_EXIT_TIMEOUT;
+
+  config.saveAdapter = args.saveAdapter;
+  config.unresolvedModule =
+    args.unresolvedModule || config.unresolvedModule || 'ignore';
 
   config.browser = config.browser || {};
-  config.files = merge(config.files, program.args);
-  config.files = loadFiles(config.files);
-  config.exclude = merge(config.exclude, program.exclude);
-  config.files = exclude(config.files, config.exclude);
-  config.logLevel = program.logLevel || config.browser.logLevel || 'default';
-  config.reporter = program.reporter || 'default';
-  config.runTodo = program.runTodo || config.runTodo;
-  config.exitTimeout = program.exitTimeout || DEFAULT_EXIT_TIMEOUT;
-
-  config.saveAdapter = program.saveAdapter;
-  config.unresolvedModule = program.unresolvedModule ||
-    config.unresolvedModule ||
-    'ignore';
-
-  config.browser.browsers = merge(config.browser.browsers, program.browsers);
-  config.browser.port = +program.browserPort || config.browser.port;
+  config.browser.browsers = merge(config.browser.browsers, args.browsers);
+  config.browser.port = args.browserPort || config.browser.port;
   config.browser = getBrowserConfig(config);
-  if (program.karmaConfig) {
-    config.browser = karma.parseConfig(program.karmaConfig, config.browser);
+  if (args.karmaConfig) {
+    config.browser = karma.parseConfig(args.karmaConfig, config.browser);
   }
 
   return config;
@@ -353,7 +386,8 @@ if (isLogAtLeast(config.logLevel, 'debug')) {
   console.log(`Metatests final config:\n${JSON.stringify(config, null, 2)}\n`);
 }
 if (!config.files.length) {
-  program.outputHelp(help => 'No test files specified\n\n' + help);
+  console.error('No test files were specified\n');
+  yargs.showHelp();
   onExit(1);
 }
 

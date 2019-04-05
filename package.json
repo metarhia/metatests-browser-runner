@@ -1,6 +1,6 @@
 {
   "name": "metatests-browser-runner",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "author": "Vitaliy Semenchenko <semenchenkovitaliy@gmail.com>",
   "description": "Browser test runner for metatests",
   "license": "MIT",
@@ -42,7 +42,7 @@
     "eslint": "^5.16.0",
     "eslint-config-metarhia": "^7.0.0",
     "eslint-plugin-import": "^2.16.0",
-    "metatests": "^0.6.2"
+    "metatests": "^0.6.3"
   },
   "peerDependencies": {
     "metatests": "^0.6.2"

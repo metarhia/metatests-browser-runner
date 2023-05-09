@@ -105,7 +105,7 @@ const exclude = (files, filterArr) =>
       path
         .replace('.', '\\.')
         .replace('*', '.+')
-        .replace('?', '.')
+        .replace('?', '.'),
     )
     .map(path => new RegExp(path))
     .reduce((files, regexp) => files.filter(file => !regexp.test(file)), files);
@@ -157,7 +157,7 @@ const setKarmaBrowsers = (config, ...browsers) => {
     if (!launcher) {
       console.error(
         'Metatests library does not support such browser:',
-        browser
+        browser,
       );
       process.exit(1);
     }

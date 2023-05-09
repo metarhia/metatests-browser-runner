@@ -23,13 +23,13 @@
   },
   "homepage": "https://github.com/metarhia/metatests-browser-runner",
   "dependencies": {
-    "@metarhia/common": "^1.4.2",
+    "@metarhia/common": "^2.2.1",
     "babel-polyfill": "^6.26.0",
-    "karma": "^4.0.1",
-    "karma-webpack": "^3.0.5",
-    "webpack": "^4.29.6",
-    "yaml": "^1.4.0",
-    "yargs": "^13.2.2"
+    "karma": "^6.4.2",
+    "karma-webpack": "^5.0.0",
+    "webpack": "^5.82.0",
+    "yaml": "^2.2.2",
+    "yargs": "^17.7.2"
   },
   "optionalDependencies": {
     "karma-chrome-launcher": "^2.2.0",
@@ -39,12 +39,9 @@
     "karma-safari-launcher": "^1.0.0"
   },
   "devDependencies": {
-    "eslint": "^5.16.0",
-    "eslint-config-metarhia": "^7.0.0",
-    "eslint-plugin-import": "^2.16.0",
-    "metatests": "^0.6.3"
-  },
-  "peerDependencies": {
-    "metatests": "^0.6.2"
+    "eslint": "^8.40.0",
+    "eslint-config-metarhia": "^8.1.0",
+    "eslint-plugin-import": "^2.25.4",
+    "metatests": "^0.8.2"
   }
 }

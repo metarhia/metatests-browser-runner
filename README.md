@@ -1,2 +1,1 @@
-# metatests-test-runner
-Test runner for metatests
+# Test runner for metatests
